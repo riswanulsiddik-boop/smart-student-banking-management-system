@@ -1,0 +1,358 @@
+ ==============================================================================
+# PROJECT 2: SMART STUDENT & BANKING MANAGEMENT SYSTEM
+# ==============================================================================
+# This project merges and elevates all error handling concepts from 'errorfinding.py':
+#  1. ValueError & General Exception (Student Registration & Integer input)
+#  2. Custom Exception Raising (Age eligibility check: age < 18)
+#  3. Custom ValueError Raising (Password validation: length < 6)
+#  4. IndexError (List element lookup by index)
+#  5. KeyError (Dictionary key lookup)
+#  6. ZeroDivisionError & ValueError (Fee / Marks calculation & division)
+#  7. ATM / Banking System (Insufficient balance, invalid amount, ValueError)
+#  8. FileNotFoundError (Reading & writing external record files)
+#  9. Interactive While Loop & Safe Menu Navigation
+# ==============================================================================
+
+import os
+
+# Global / Session Data
+current_user = None
+students = [
+    {"name": "Riswan", "age": 20, "course": "Python Fullstack"},
+    {"name": "Monu", "age": 21, "course": "Data Science"}
+]
+bank_balance = 10000
+DATA_FILE = "system_records.txt"
+
+
+# ------------------------------------------------------------------------------
+# 1. USER AUTHENTICATION & VALIDATION MODULE (Concepts: raise Exception, raise ValueError)
+# ------------------------------------------------------------------------------
+def register_or_login():
+    """Validates user eligibility (age >= 18) and password length (>= 6 chars)."""
+    global current_user
+    print("\n--- [1] User Authentication / Registration ---")
+    while True:
+        try:
+            name = input("Enter your username: ").strip()
+            if not name:
+                print("Username cannot be empty!")
+                continue
+
+            age_input = input("Enter your age: ").strip()
+            age = int(age_input)  # May raise ValueError
+
+            # Concept from errorfinding.py: Custom Age Validation
+            if age < 18:
+                raise Exception("Not eligible! Minimum age requirement is 18.")
+
+            password = input("Enter a secure password: ")
+
+            # Concept from errorfinding.py: Custom Password Validation
+            if len(password) < 6:
+                raise ValueError("Password too short! Must be at least 6 characters.")
+
+            current_user = {"name": name, "age": age}
+            print(f"\n[SUCCESS] Welcome, {name}! Account verified and logged in successfully.")
+            break
+
+        except ValueError as ve:
+            print(f"[INPUT ERROR]: {ve}")
+            print("Tip: Age must be a whole number, and password must have 6+ characters.")
+        except Exception as e:
+            print(f"[VALIDATION ERROR]: {e}")
+
+        retry = input("Do you want to try again? (y/n): ").strip().lower()
+        if retry != 'y':
+            print("Authentication skipped.")
+            break
+
+
+# ------------------------------------------------------------------------------
+# 2. STUDENT REGISTRATION MODULE (Concepts: ValueError, General Exception)
+# ------------------------------------------------------------------------------
+def add_student():
+    """Adds a new student dictionary to the list with error handling."""
+    print("\n--- [2] Register New Student ---")
+    while True:
+        try:
+            name = input("Enter student name: ").strip()
+            if not name:
+                print("Student name cannot be empty.")
+                continue
+
+            age = int(input("Enter student age: "))
+            if age <= 0 or age > 120:
+                raise ValueError("Age must be between 1 and 120.")
+
+            course = input("Enter course name: ").strip()
+            if not course:
+                course = "General"
+
+            # Create student dictionary
+            new_student = {"name": name, "age": age, "course": course}
+            students.append(new_student)
+            print(f"[SUCCESS] Student added successfully: {new_student}")
+            break
+
+        except ValueError as ve:
+            print(f"[VALUE ERROR] Invalid input: {ve}. Please enter a valid number for age.")
+        except Exception as e:
+            print(f"[ERROR] An unexpected error occurred: {e}")
+
+        retry = input("Try entering student details again? (y/n): ").strip().lower()
+        if retry != 'y':
+            break
+
+
+# ------------------------------------------------------------------------------
+# 3. LIST INDEX LOOKUP MODULE (Concepts: IndexError, ValueError)
+# ------------------------------------------------------------------------------
+def search_student_by_index():
+    """Retrieves a student record by index, safely handling IndexError."""
+    print("\n--- [3] Search Student by Index ---")
+    if not students:
+        print("[INFO] No students found in the list.")
+        return
+
+    print(f"Available indices: 0 to {len(students) - 1}")
+    try:
+        idx_input = input("Enter student index to view: ").strip()
+        index = int(idx_input)  # May raise ValueError
+
+        # Concept from errorfinding.py: lst[index] with IndexError handling
+        student = students[index]
+        print(f"[FOUND] Student at index {index}:")
+        print(f"   Name   : {student.get('name')}")
+        print(f"   Age    : {student.get('age')}")
+        print(f"   Course : {student.get('course')}")
+
+    except IndexError:
+        print(f"[INDEX ERROR] Index out of range! Please choose an index between 0 and {len(students) - 1}.")
+    except ValueError:
+        print("[VALUE ERROR] Invalid input! Please enter an integer index only.")
+    except Exception as e:
+        print(f"[ERROR]: {e}")
+
+
+# ------------------------------------------------------------------------------
+# 4. DICTIONARY KEY ACCESS MODULE (Concept: KeyError)
+# ------------------------------------------------------------------------------
+def access_student_detail_key():
+    """Accesses a specific dictionary key from a student record, catching KeyError."""
+    print("\n--- [4] Access Student Record Field ---")
+    if not students:
+        print("[INFO] No students available.")
+        return
+
+    try:
+        idx = int(input(f"Enter student index (0 to {len(students)-1}): "))
+        selected_student = students[idx]  # May raise IndexError
+        print(f"Student '{selected_student['name']}' selected.")
+
+        key = input("Enter field name to inspect (e.g., name, age, course, mark, fees): ").strip()
+
+        # Concept from errorfinding.py: Direct dictionary subscript triggering KeyError
+        value = selected_student[key]
+        print(f"[SUCCESS] {key} -> {value}")
+
+    except KeyError:
+        print(f"[KEY ERROR] Field '{key}' not found in the student record!")
+        print(f"Available keys in this record: {list(selected_student.keys())}")
+    except IndexError:
+        print("[INDEX ERROR] That student index does not exist!")
+    except ValueError:
+        print("[VALUE ERROR] Please enter a valid number for index.")
+    except Exception as e:
+        print(f"[ERROR]: {e}")
+
+
+# ------------------------------------------------------------------------------
+# 5. ATM & BANKING MODULE (Concepts: Insufficient Balance, Negative Amount, ValueError)
+# ------------------------------------------------------------------------------
+def atm_banking_system():
+    """Interactive ATM banking service for deposit, withdrawal and balance inquiry."""
+    global bank_balance
+    print("\n--- [5] ATM & Banking Services ---")
+
+    while True:
+        print(f"\nCurrent Balance: Rs. {bank_balance:.2f}")
+        print("1. Check Balance")
+        print("2. Deposit Money")
+        print("3. Withdraw Money")
+        print("4. Return to Main Menu")
+        choice = input("Select an ATM option (1-4): ").strip()
+
+        if choice == "1":
+            print(f"[BALANCE] Your available balance is: Rs. {bank_balance:.2f}")
+
+        elif choice == "2":
+            try:
+                amt = float(input("Enter amount to deposit: "))
+                if amt <= 0:
+                    raise Exception("Deposit amount must be greater than zero.")
+                bank_balance += amt
+                print(f"[SUCCESS] Deposited Rs. {amt:.2f}. New Balance: Rs. {bank_balance:.2f}")
+            except ValueError:
+                print("[ERROR] Please enter numbers only for deposit amount.")
+            except Exception as e:
+                print(f"[DEPOSIT ERROR]: {e}")
+
+        elif choice == "3":
+            # Concept from errorfinding.py: Custom ATM exception handling
+            try:
+                amt = float(input("Enter amount to withdraw: "))
+                if amt > bank_balance:
+                    raise Exception(f"Insufficient balance! Current balance is Rs. {bank_balance:.2f}")
+                elif amt <= 0:
+                    raise Exception("Invalid amount! Withdrawal amount must be greater than 0.")
+                else:
+                    bank_balance -= amt
+                    print(f"[SUCCESS] Rs. {amt:.2f} withdrawn successfully.")
+                    print(f"[BALANCE] Remaining balance: Rs. {bank_balance:.2f}")
+            except ValueError:
+                print("[ERROR] Enter numbers only for withdrawal amount.")
+            except Exception as e:
+                print(f"[TRANSACTION FAILED]: {e}")
+
+        elif choice == "4":
+            break
+        else:
+            print("[INVALID] Please choose an option from 1 to 4.")
+
+
+# ------------------------------------------------------------------------------
+# 6. CALCULATOR & DIVISION MODULE (Concepts: ZeroDivisionError, ValueError)
+# ------------------------------------------------------------------------------
+def calculate_division():
+    """Performs safe division (e.g. fee installments or marks average)."""
+    print("\n--- [6] Fee / Marks Split Calculator ---")
+    try:
+        a = float(input("Enter total amount or total marks: "))
+        b = float(input("Enter number of installments or subjects: "))
+
+        # Concept from errorfinding.py: a / b with ZeroDivisionError & ValueError
+        result = a / b
+        print(f"[CALCULATION RESULT] {a} / {b} = {result:.2f}")
+
+    except ZeroDivisionError:
+        print("[ZERO DIVISION ERROR] Cannot divide by zero! Installments / subjects cannot be 0.")
+    except ValueError:
+        print("[VALUE ERROR] Please enter valid numbers only.")
+    except Exception as e:
+        print(f"[ERROR]: {e}")
+
+
+# ------------------------------------------------------------------------------
+# 7. FILE HANDLING MODULE (Concepts: FileNotFoundError, Write/Read)
+# ------------------------------------------------------------------------------
+def save_system_data():
+    """Saves student records and bank balance to a file."""
+    print("\n--- [7] Save System Data to File ---")
+    try:
+        with open(DATA_FILE, "w") as file:
+            file.write("=== SYSTEM REPORT ===\n")
+            file.write(f"Bank Balance: Rs. {bank_balance:.2f}\n\n")
+            file.write("--- Student Records ---\n")
+            for i, st in enumerate(students):
+                file.write(f"[{i}] Name: {st['name']} | Age: {st['age']} | Course: {st['course']}\n")
+        print(f"[SUCCESS] Data successfully saved to '{DATA_FILE}'.")
+    except Exception as e:
+        print(f"[FILE WRITE ERROR] Could not save data: {e}")
+
+
+def read_system_data():
+    """Reads system records from file, catching FileNotFoundError."""
+    print("\n--- [8] Read Saved File Data ---")
+    target_file = input(f"Enter filename to read (Press Enter for default '{DATA_FILE}'): ").strip()
+    if not target_file:
+        target_file = DATA_FILE
+
+    # Concept from errorfinding.py: Reading file with FileNotFoundError handling
+    try:
+        with open(target_file, "r") as file:
+            content = file.read()
+            print("\n----- FILE CONTENT START -----")
+            print(content)
+            print("----- FILE CONTENT END -----")
+    except FileNotFoundError:
+        print(f"[FILE NOT FOUND ERROR] The file '{target_file}' does not exist yet!")
+        print("Tip: Choose option 7 first to create and save the file.")
+    except Exception as e:
+        print(f"[FILE ERROR]: {e}")
+
+
+# ------------------------------------------------------------------------------
+# 8. MAIN PROGRAM MENU & SAFE DISPATCHER LOOP
+# ------------------------------------------------------------------------------
+def display_menu():
+    print("\n" + "=" * 55)
+    print("      SMART STUDENT & BANKING MANAGEMENT SYSTEM      ")
+    print("      (Built with Robust Python Error Handling)      ")
+    print("=" * 55)
+    user_status = current_user['name'] if current_user else "Guest (Not Authenticated)"
+    print(f"Logged in as: {user_status}")
+    print("1. User Registration / Login       (Age & Password Validation)")
+    print("2. Add New Student                 (ValueError & Exception)")
+    print("3. Search Student by Index         (IndexError)")
+    print("4. Inspect Student Record Field    (KeyError)")
+    print("5. ATM & Banking Services          (Insufficient Balance & Value)")
+    print("6. Fee / Marks Split Calculator    (ZeroDivisionError)")
+    print("7. Save Records to File            (File Write)")
+    print("8. Read Records from File          (FileNotFoundError)")
+    print("9. Display All Current Students")
+    print("0. Exit Application")
+    print("=" * 55)
+
+
+def list_all_students():
+    print("\n--- [9] All Current Students ---")
+    if not students:
+        print("No student records available.")
+        return
+    for i, s in enumerate(students):
+        print(f"  [{i}] Name: {s['name']}, Age: {s['age']}, Course: {s['course']}")
+
+
+def main():
+    print("\nInitializing Smart Management Project...")
+    while True:
+        try:
+            display_menu()
+            choice = input("Enter your choice (0-9): ").strip()
+
+            if choice == "1":
+                register_or_login()
+            elif choice == "2":
+                add_student()
+            elif choice == "3":
+                search_student_by_index()
+            elif choice == "4":
+                access_student_detail_key()
+            elif choice == "5":
+                atm_banking_system()
+            elif choice == "6":
+                calculate_division()
+            elif choice == "7":
+                save_system_data()
+            elif choice == "8":
+                read_system_data()
+            elif choice == "9":
+                list_all_students()
+            elif choice == "0":
+                print("\nThank you for using the Smart Management System. Goodbye!")
+                break
+            else:
+                print("[INVALID OPTION] Please enter a valid number from 0 to 9.")
+
+        except KeyboardInterrupt:
+            print("\n\nApplication interrupted. Exiting safely...")
+            break
+        except Exception as e:
+            # Catch-all safeguard so the application loop never abruptly crashes
+            print(f"\n[UNEXPECTED SYSTEM ERROR]: {e}")
+
+
+if __name__ == "__main__":
+    main()
+
